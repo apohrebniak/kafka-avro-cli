@@ -39,7 +39,7 @@ fn produce(ctx: &AppCtx) -> Result<(), CliError> {
             .collect::<serde_json::Result<Vec<JsonValue>>>()?;
 
         // use schema-registry?
-        if ctx.avro_ctx.registry_url.is_some() {
+        if ctx.avro_ctx.registry_url.is_none() {
             let schema = avro::parse_schema(&ctx.avro_ctx)?;
             let avros = jsons_to_avro(jsons, &schema)?;
             encode(avros, |avro: AvroValue| avro::encode(avro, &schema))?
@@ -118,7 +118,6 @@ fn match_args() -> ArgMatches {
                         .long("payload")
                         .multiple_values(false)
                         .value_name("JSON")
-                        .required_unless_present("text")
                         .conflicts_with("payload-file")
                 )
                 .arg(
@@ -127,15 +126,7 @@ fn match_args() -> ArgMatches {
                         .long("payload-file")
                         .multiple_values(false)
                         .value_name("PATH")
-                        .required_unless_present("text")
                         .conflicts_with("payload")
-                )
-                .arg(
-                    Arg::new("register-schema")
-                        .about("Register the Avro schema if it wasn't found")
-                        .long("register-schema")
-                        .requires("registry-url")
-                        .conflicts_with("text")
                 )
                 .arg(
                     Arg::new("schema")
@@ -144,16 +135,16 @@ fn match_args() -> ArgMatches {
                         .long("schema")
                         .multiple_values(false)
                         .value_name("SCHEMA JSON")
-                        .required_unless_present("text")
+                        .required_unless_present_any(&["text", "schema-file", "registry-url"])
                         .conflicts_with("schema-file")
                 )
                 .arg(
                     Arg::new("schema-file")
                         .about("File containing the Avro schema used to serialize payload")
-                        .long("schema")
+                        .long("schema-file")
                         .multiple_values(false)
                         .value_name("PATH")
-                        .required_unless_present("text")
+                        .required_unless_present_any(&["text", "schema", "registry-url"])
                         .conflicts_with("schema"),
                 )
                 .arg(
