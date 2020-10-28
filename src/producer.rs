@@ -1,17 +1,11 @@
 use crate::context::KafkaCtx;
-use rdkafka::config::{FromClientConfig, FromClientConfigAndContext};
+use rdkafka::config::FromClientConfigAndContext;
 use rdkafka::error::KafkaError;
 use rdkafka::message::DeliveryResult;
-use rdkafka::producer::{
-    BaseRecord, DefaultProducerContext, FutureProducer, FutureRecord, ProducerContext,
-    ThreadedProducer,
-};
-use rdkafka::util::Timeout;
+use rdkafka::producer::{BaseRecord, ProducerContext, ThreadedProducer};
 use rdkafka::{ClientConfig, ClientContext};
-use std::error::Error;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
-use std::time::Duration;
 
 const PRODUCER_MAX_RETRIES: &str = "0";
 
@@ -64,7 +58,7 @@ impl ProducerContext for BlockingProducerContext {
     fn delivery<'a>(
         &self,
         delivery_result: &DeliveryResult<'a>,
-        delivery_opaque: Self::DeliveryOpaque,
+        _delivery_opaque: Self::DeliveryOpaque,
     ) {
         self.sender
             .lock()

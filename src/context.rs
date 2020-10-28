@@ -1,14 +1,6 @@
-// hosts +
-// topic +
-// payload
-// schema +
-// schema-registry-url +
-// plain-text? +
-// ssl opts (multiple) +
-// payload-file-path
-// schema-file-path
-
+use crate::error::CliError;
 use clap::ArgMatches;
+use std::fs::read_to_string;
 
 pub struct KafkaCtx {
     //TODO: SSL
@@ -19,8 +11,6 @@ pub struct KafkaCtx {
 pub struct AvroCtx {
     pub registry_url: Option<String>,
     pub schema: Option<String>,
-    pub schema_file: Option<String>,
-    pub register_schema: Option<bool>,
 }
 
 pub enum AppCmd {
@@ -37,7 +27,7 @@ pub struct AppCtx {
     pub avro_ctx: AvroCtx,
 }
 
-pub fn parse_app_ctx(arg_matches: &ArgMatches) -> AppCtx {
+pub fn parse_app_ctx(arg_matches: &ArgMatches) -> Result<AppCtx, CliError> {
     // parse command
     let (args, command) = arg_matches
         .subcommand_matches("produce")
@@ -57,24 +47,26 @@ pub fn parse_app_ctx(arg_matches: &ArgMatches) -> AppCtx {
         panic!("payload expected")
     }
 
-    AppCtx {
+    parse_avro_ctx(args).map(|avro_ctx| AppCtx {
         command,
         is_avro: is_json,
         payload,
         payload_file,
         kafka_ctx: KafkaCtx { hosts, topic },
-        avro_ctx: parse_avro_ctx(args),
-    }
+        avro_ctx,
+    })
 }
 
-fn parse_avro_ctx(arg_matches: &ArgMatches) -> AvroCtx {
+fn parse_avro_ctx(arg_matches: &ArgMatches) -> Result<AvroCtx, CliError> {
     let schema = arg_matches.value_of("schema").map(|s| s.to_owned());
-    let schema_file = arg_matches.value_of("schema").map(|s| s.to_owned());
+    // try to read schema from file if path was passed as an arg
+    let schema_file = arg_matches
+        .value_of("schema-file")
+        .map(|path| read_to_string(path))
+        .transpose()?;
 
-    AvroCtx {
+    Ok(AvroCtx {
         registry_url: arg_matches.value_of("registry-url").map(|s| s.to_owned()),
-        schema,
-        schema_file,
-        register_schema: None, //TODO
-    }
+        schema: schema.or(schema_file),
+    })
 }

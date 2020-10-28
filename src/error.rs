@@ -46,7 +46,7 @@ impl From<rdkafka::error::KafkaError> for CliError {
 }
 
 impl From<()> for CliError {
-    fn from(err: ()) -> Self {
+    fn from(_: ()) -> Self {
         Empty
     }
 }

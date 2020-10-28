@@ -1,12 +1,11 @@
-use crate::avro::get_schema;
-use crate::context::{parse_app_ctx, AppCmd, AppCtx, AvroCtx, KafkaCtx};
+use crate::context::{parse_app_ctx, AppCmd, AppCtx};
 use crate::error::CliError;
 use crate::producer::Producer;
 use avro_rs::types::Value as AvroValue;
-use clap::{App, AppSettings, Arg, ArgGroup, ArgMatches};
+use avro_rs::{AvroResult, Schema};
+use clap::{App, AppSettings, Arg, ArgMatches};
+use schema_registry_converter::schema_registry_common::SubjectNameStrategy;
 use serde_json::Value as JsonValue;
-use std::error::Error;
-use std::process;
 
 mod avro;
 mod context;
@@ -16,7 +15,7 @@ mod producer;
 
 fn main() -> Result<(), CliError> {
     let arg_matches = match_args();
-    let app_ctx = &parse_app_ctx(&arg_matches);
+    let app_ctx = &parse_app_ctx(&arg_matches)?;
 
     match app_ctx.command {
         AppCmd::Produce => produce(&app_ctx),
@@ -26,12 +25,10 @@ fn main() -> Result<(), CliError> {
 
 fn produce(ctx: &AppCtx) -> Result<(), CliError> {
     // read payload
-    let payload = if let Some(ref data) = ctx.payload {
-        vec![data.clone()]
-    } else if let Some(ref path) = ctx.payload_file {
-        data::read_payload(path)?
-    } else {
-        panic!("payload expected")
+    let payload = match (&ctx.payload, &ctx.payload_file) {
+        (Some(ref raw_payload), _) => vec![raw_payload.clone()],
+        (None, Some(ref path)) => data::read_payload(path)?,
+        _ => panic!("payload expected"),
     };
 
     //is it Avro?
@@ -40,15 +37,21 @@ fn produce(ctx: &AppCtx) -> Result<(), CliError> {
             .iter()
             .map(|raw_line| data::parse_json(raw_line))
             .collect::<serde_json::Result<Vec<JsonValue>>>()?;
-        let (schema_id, schema) = avro::get_schema(ctx)?;
-        let avros = jsons
-            .iter()
-            .map(|json| avro::to_avro(json, &schema))
-            .collect::<Result<Vec<AvroValue>, ()>>()?; //TODO: err type
-        avros
-            .into_iter()
-            .map(|avro| avro::encode(avro, &schema, schema_id))
-            .collect::<Result<Vec<Vec<u8>>, avro_rs::Error>>()?
+
+        // use schema-registry?
+        if ctx.avro_ctx.registry_url.is_some() {
+            let schema = avro::parse_schema(&ctx.avro_ctx)?;
+            let avros = jsons_to_avro(jsons, &schema)?;
+            encode(avros, |avro: AvroValue| avro::encode(avro, &schema))?
+        } else {
+            let strategy =
+                SubjectNameStrategy::TopicNameStrategy(ctx.kafka_ctx.topic.clone(), false);
+            let (schema_id, schema) = avro::get_registered_schema(&ctx.avro_ctx, &strategy)?;
+            let avros = jsons_to_avro(jsons, &schema)?;
+            encode(avros, |avro: AvroValue| {
+                avro::encode_with_schema_id(avro, &schema, schema_id)
+            })?
+        }
     } else {
         payload.into_iter().map(|s| s.into_bytes()).collect()
     };
@@ -56,10 +59,28 @@ fn produce(ctx: &AppCtx) -> Result<(), CliError> {
     Producer::produce(&ctx.kafka_ctx, encoded).map_err(|e| e.into())
 }
 
+fn encode<F>(avros: Vec<AvroValue>, mut map: F) -> Result<Vec<Vec<u8>>, CliError>
+where
+    F: FnMut(AvroValue) -> AvroResult<Vec<u8>>,
+{
+    avros
+        .into_iter()
+        .map(|avro| map(avro))
+        .collect::<Result<Vec<Vec<u8>>, avro_rs::Error>>()
+        .map_err(|e| e.into())
+}
+
+fn jsons_to_avro(jsons: Vec<JsonValue>, schema: &Schema) -> Result<Vec<AvroValue>, ()> {
+    //TODO: err type
+    jsons
+        .iter()
+        .map(|json| avro::to_avro(json, schema))
+        .collect::<Result<Vec<AvroValue>, ()>>()
+}
+
 fn match_args() -> ArgMatches {
     App::new("Kafka Avro CLI")
         .about("Produces/consumes Avro serialized messages into Kafka")
-        .setting(AppSettings::NoBinaryName)
         .setting(AppSettings::SubcommandRequired)
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
