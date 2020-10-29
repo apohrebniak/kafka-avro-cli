@@ -70,12 +70,11 @@ where
         .map_err(|e| e.into())
 }
 
-fn jsons_to_avro(jsons: Vec<JsonValue>, schema: &Schema) -> Result<Vec<AvroValue>, ()> {
-    //TODO: err type
+fn jsons_to_avro(jsons: Vec<JsonValue>, schema: &Schema) -> Result<Vec<AvroValue>, CliError> {
     jsons
         .iter()
-        .map(|json| avro::to_avro(json, schema))
-        .collect::<Result<Vec<AvroValue>, ()>>()
+        .map(|json| avro::map_with_schema(json, schema))
+        .collect::<Result<Vec<AvroValue>, CliError>>()
 }
 
 fn match_args() -> ArgMatches {

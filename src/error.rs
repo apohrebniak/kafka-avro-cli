@@ -1,18 +1,40 @@
-use crate::error::CliError::{Avro, Empty, Json, Kafka, SchemaRegistry, IO};
+use crate::error::CliError::{Avro, Json, Kafka, Mapping, SchemaRegistry, IO};
 use avro_rs;
+
+use core::fmt;
+use core::fmt::Debug;
 use schema_registry_converter;
 use schema_registry_converter::error::SRCError;
+use serde::export::Formatter;
 use serde_json;
 use std::io;
 
-#[derive(Debug)]
 pub enum CliError {
-    Empty,
     SchemaRegistry(schema_registry_converter::error::SRCError),
     Avro(avro_rs::Error),
     IO(io::Error),
     Json(serde_json::Error),
     Kafka(rdkafka::error::KafkaError),
+    Mapping(String, String),
+}
+
+impl Debug for CliError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
+}
+
+impl fmt::Display for CliError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            SchemaRegistry(e) => fmt::Display::fmt(&e, f),
+            Avro(e) => fmt::Display::fmt(&e, f),
+            IO(e) => fmt::Display::fmt(&e, f),
+            Json(e) => fmt::Display::fmt(&e, f),
+            Kafka(e) => fmt::Display::fmt(&e, f),
+            Mapping(schema, value) => write!(f, "cannot convert {} into {}", value, schema),
+        }
+    }
 }
 
 impl From<schema_registry_converter::error::SRCError> for CliError {
@@ -42,11 +64,5 @@ impl From<serde_json::Error> for CliError {
 impl From<rdkafka::error::KafkaError> for CliError {
     fn from(err: rdkafka::error::KafkaError) -> Self {
         Kafka(err)
-    }
-}
-
-impl From<()> for CliError {
-    fn from(_: ()) -> Self {
-        Empty
     }
 }

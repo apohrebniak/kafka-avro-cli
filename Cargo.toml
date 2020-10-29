@@ -1,15 +1,21 @@
 [package]
 name = "kafka-avro-cli"
 version = "0.1.0"
-authors = ["Andrii Pohrebniak <a.pohrebniak@gethatch.com>"]
+authors = ["Andrii Pohrebniak <andrii.pohrebniak@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+opt-level = "z"
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = true
+panic = "abort"
 
 [dependencies]
-rdkafka = {version="0.24.0", default-features=false, features=["ssl-vendored"]}
-clap = "3.0.0-beta.2" #TODO: remove unused features
-avro-rs = "0.11.0"
+rdkafka = {version="0.24.0", default-features=false}
+clap = {versior = "3.0.0-beta.2", default-features = false, features = ["std"]}
+avro-rs = {version = "0.11.0", default-features = false}
 serde = "1.0"
 serde_json = "1.0.59"
-schema_registry_converter = {version="2.0.0", default-features = false, features = ["avro", "blocking"]}
+schema_registry_converter = {version="2.0.0", default-features = false, features = ["blocking"]}
