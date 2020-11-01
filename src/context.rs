@@ -32,9 +32,11 @@ pub fn parse_app_ctx(arg_matches: &ArgMatches) -> Result<AppCtx, CliError> {
     let (args, command) = arg_matches
         .subcommand_matches("produce")
         .map(|a| (a, AppCmd::Produce))
-        .or(arg_matches
-            .subcommand_matches("produce")
-            .map(|a| (a, AppCmd::Consume)))
+        .or_else(|| {
+            arg_matches
+                .subcommand_matches("consume")
+                .map(|a| (a, AppCmd::Consume))
+        })
         .expect("subcommand expected");
 
     let hosts: String = args.value_of("hosts").expect("hosts expected").to_owned();
@@ -62,7 +64,7 @@ fn parse_avro_ctx(arg_matches: &ArgMatches) -> Result<AvroCtx, CliError> {
     // try to read schema from file if path was passed as an arg
     let schema_file = arg_matches
         .value_of("schema-file")
-        .map(|path| read_to_string(path))
+        .map(read_to_string)
         .transpose()?;
 
     Ok(AvroCtx {

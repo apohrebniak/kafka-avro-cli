@@ -46,9 +46,9 @@ pub fn get_registered_schema(
         None => fetch_schema(registry_url, strategy)?,
     };
 
-    return Schema::parse_str(registered_schema.schema.as_str())
+    Schema::parse_str(registered_schema.schema.as_str())
         .map(|schema| (registered_schema.id, schema))
-        .map_err(|e| e.into());
+        .map_err(|e| e.into())
 }
 
 fn fetch_schema(
@@ -93,7 +93,7 @@ pub fn encode_with_schema_id(
 pub fn map_with_schema(json: &JsonValue, schema: &Schema) -> Result<AvroValue, CliError> {
     match (schema, json) {
         (Schema::Null, JsonValue::Null) => Ok(AvroValue::Null),
-        (Schema::Boolean, JsonValue::Bool(b)) => Ok(AvroValue::Boolean(b.clone())),
+        (Schema::Boolean, JsonValue::Bool(b)) => Ok(AvroValue::Boolean(*b)),
         (Schema::Int, JsonValue::Number(ref n)) if n.is_i64() => {
             Ok(AvroValue::Int(n.as_f64().unwrap() as i32))
         }

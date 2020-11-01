@@ -1,12 +1,9 @@
 use crate::error::CliError::{Avro, Json, Kafka, Mapping, SchemaRegistry, IO};
-use avro_rs;
 
 use core::fmt;
 use core::fmt::Debug;
-use schema_registry_converter;
 use schema_registry_converter::error::SRCError;
 use serde::export::Formatter;
-use serde_json;
 use std::io;
 
 pub enum CliError {
