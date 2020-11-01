@@ -141,7 +141,7 @@ pub fn map_with_schema(json: &JsonValue, schema: &Schema) -> Result<AvroValue, C
         }
         (Schema::Union(union_schema), json_value) => {
             match get_suitable_type_from_union(union_schema, json_value) {
-                Some(s) => map_with_schema(json_value, s),
+                Some(s) => map_with_schema(json_value, s).map(|v| AvroValue::Union(Box::new(v))),
                 None => Err(CliError::Mapping(
                     Schema::Union(union_schema.clone()).canonical_form(),
                     json_value.to_string(),

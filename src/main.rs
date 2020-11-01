@@ -118,6 +118,7 @@ fn match_args() -> ArgMatches {
                         .multiple_values(false)
                         .value_name("JSON")
                         .conflicts_with("payload-file")
+                        .required_unless_present("payload-file")
                 )
                 .arg(
                     Arg::new("payload-file")
@@ -126,6 +127,7 @@ fn match_args() -> ArgMatches {
                         .multiple_values(false)
                         .value_name("PATH")
                         .conflicts_with("payload")
+                        .required_unless_present("payload")
                 )
                 .arg(
                     Arg::new("schema")

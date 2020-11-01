@@ -27,11 +27,11 @@ impl Debug for CliError {
 impl fmt::Display for CliError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            SchemaRegistry(e) => fmt::Display::fmt(&e, f),
-            Avro(e) => fmt::Display::fmt(&e, f),
-            IO(e) => fmt::Display::fmt(&e, f),
-            Json(e) => fmt::Display::fmt(&e, f),
-            Kafka(e) => fmt::Display::fmt(&e, f),
+            SchemaRegistry(e) => write!(f, "schema registry error: {}", e),
+            Avro(e) => write!(f, "avro error: {:?}", e),
+            IO(e) => write!(f, "schema IO error: {}", e),
+            Json(e) => write!(f, "json parsing error: {}", e),
+            Kafka(e) => write!(f, "kafka error: {}", e),
             Mapping(schema, value) => write!(f, "cannot convert {} into {}", value, schema),
         }
     }
