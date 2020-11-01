@@ -2,10 +2,22 @@ use crate::error::CliError;
 use clap::ArgMatches;
 use std::fs::read_to_string;
 
+pub struct SslCtx {
+    pub enabled: bool,
+    pub cert_validate: bool,
+    pub host_validate: bool,
+    pub key_location: Option<String>,
+    pub key_password: Option<String>,
+    pub cert_location: Option<String>,
+    pub ca_location: Option<String>,
+    pub keystore_location: Option<String>,
+    pub keystore_password: Option<String>,
+}
+
 pub struct KafkaCtx {
-    //TODO: SSL
     pub hosts: String,
     pub topic: String,
+    pub ssl: SslCtx,
 }
 
 pub struct AvroCtx {
@@ -49,12 +61,14 @@ pub fn parse_app_ctx(arg_matches: &ArgMatches) -> Result<AppCtx, CliError> {
         panic!("payload expected")
     }
 
+    let ssl = parse_ssl_ctx(arg_matches)?;
+
     parse_avro_ctx(args).map(|avro_ctx| AppCtx {
         command,
         is_avro: is_json,
         payload,
         payload_file,
-        kafka_ctx: KafkaCtx { hosts, topic },
+        kafka_ctx: KafkaCtx { hosts, topic, ssl },
         avro_ctx,
     })
 }
@@ -70,5 +84,38 @@ fn parse_avro_ctx(arg_matches: &ArgMatches) -> Result<AvroCtx, CliError> {
     Ok(AvroCtx {
         registry_url: arg_matches.value_of("registry-url").map(|s| s.to_owned()),
         schema: schema.or(schema_file),
+    })
+}
+
+fn parse_ssl_ctx(arg_matches: &ArgMatches) -> Result<SslCtx, CliError> {
+    let key_location = arg_matches
+        .value_of("ssl-key-location")
+        .map(|s| s.to_owned());
+    let key_password = arg_matches
+        .value_of("ssl-key-password")
+        .map(|s| s.to_owned());
+    let cert_location = arg_matches
+        .value_of("ssl-cert-location")
+        .map(|s| s.to_owned());
+    let ca_location = arg_matches
+        .value_of("ssl-ca-location")
+        .map(|s| s.to_owned());
+    let keystore_location = arg_matches
+        .value_of("ssl-keystore-location")
+        .map(|s| s.to_owned());
+    let keystore_password = arg_matches
+        .value_of("ssl-keystore-password")
+        .map(|s| s.to_owned());
+
+    Ok(SslCtx {
+        enabled: arg_matches.is_present("ssl"),
+        cert_validate: !arg_matches.is_present("ssl.disable.validate"),
+        host_validate: arg_matches.is_present("ssl.host.validate"),
+        key_location,
+        key_password,
+        cert_location,
+        ca_location,
+        keystore_location,
+        keystore_password,
     })
 }
