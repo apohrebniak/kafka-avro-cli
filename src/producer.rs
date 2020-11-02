@@ -14,9 +14,7 @@ pub struct Producer;
 impl Producer {
     pub fn produce(kafka_ctx: &KafkaCtx, payloads: Vec<Vec<u8>>) -> Result<(), KafkaError> {
         //config
-        let mut client_cfg = ClientConfig::new();
-        client_cfg.set("bootstrap.servers", &kafka_ctx.hosts);
-        client_cfg.set("retries", PRODUCER_MAX_RETRIES);
+        let client_cfg = build_kafka_config(kafka_ctx);
 
         //context
         let (ctx_sender, ctx_receiver) = channel::<Result<(), KafkaError>>();
@@ -36,6 +34,52 @@ impl Producer {
             .map(|_| ctx_receiver.recv().unwrap())
             .collect()
     }
+}
+
+fn build_kafka_config(kafka_ctx: &KafkaCtx) -> ClientConfig {
+    let mut client_cfg = ClientConfig::new();
+    client_cfg.set("bootstrap.servers", &kafka_ctx.hosts);
+    client_cfg.set("retries", PRODUCER_MAX_RETRIES);
+
+    if kafka_ctx.ssl.enabled {
+        client_cfg.set("security.protocol", "ssl");
+        client_cfg.set(
+            "enable.ssl.certificate.verification",
+            if kafka_ctx.ssl.cert_validate {
+                "true"
+            } else {
+                "false"
+            },
+        );
+        client_cfg.set(
+            "ssl.endpoint.identification.algorithm",
+            if kafka_ctx.ssl.host_validate {
+                "https"
+            } else {
+                "none"
+            },
+        );
+        if let Some(ref path) = kafka_ctx.ssl.key_location {
+            client_cfg.set("ssl.key.location", &path);
+        }
+        if let Some(ref pass) = kafka_ctx.ssl.key_password {
+            client_cfg.set("ssl.key.password", &pass);
+        }
+        if let Some(ref path) = kafka_ctx.ssl.cert_location {
+            client_cfg.set("ssl.certificate.location", &path);
+        }
+        if let Some(ref path) = kafka_ctx.ssl.ca_location {
+            client_cfg.set("ssl.ca.location", &path);
+        }
+        if let Some(ref path) = kafka_ctx.ssl.key_location {
+            client_cfg.set("ssl.keystore.location", &path);
+        }
+        if let Some(ref pass) = kafka_ctx.ssl.key_password {
+            client_cfg.set("ssl.keystore.password", &pass);
+        }
+    }
+
+    client_cfg
 }
 
 struct BlockingProducerContext {
