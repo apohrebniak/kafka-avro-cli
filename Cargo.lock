@@ -1041,6 +1041,7 @@ checksum = "6d3f17044cba41c7309facedc72ca9bf25f177bf1e06756318e010f043713017"
 dependencies = [
  "libc",
  "num_enum",
+ "openssl-sys",
  "pkg-config",
 ]
 

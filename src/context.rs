@@ -41,7 +41,7 @@ pub struct AppCtx {
 
 pub fn parse_app_ctx(arg_matches: &ArgMatches) -> Result<AppCtx, CliError> {
     // parse command
-    let (args, command) = arg_matches
+    let (subcommand_args, command) = arg_matches
         .subcommand_matches("produce")
         .map(|a| (a, AppCmd::Produce))
         .or_else(|| {
@@ -51,19 +51,27 @@ pub fn parse_app_ctx(arg_matches: &ArgMatches) -> Result<AppCtx, CliError> {
         })
         .expect("subcommand expected");
 
-    let hosts: String = args.value_of("hosts").expect("hosts expected").to_owned();
-    let topic: String = args.value_of("topic").expect("topic expected").to_owned();
-    let is_json = !args.is_present("text");
+    let hosts: String = subcommand_args
+        .value_of("hosts")
+        .expect("hosts expected")
+        .to_owned();
+    let topic: String = subcommand_args
+        .value_of("topic")
+        .expect("topic expected")
+        .to_owned();
+    let is_json = !subcommand_args.is_present("text");
 
-    let payload = args.value_of("payload").map(|s| s.to_owned());
-    let payload_file = args.value_of("payload-file").map(|s| s.to_owned());
+    let payload = subcommand_args.value_of("payload").map(|s| s.to_owned());
+    let payload_file = subcommand_args
+        .value_of("payload-file")
+        .map(|s| s.to_owned());
     if payload.is_none() && payload_file.is_none() {
         panic!("payload expected")
     }
 
-    let ssl = parse_ssl_ctx(arg_matches)?;
+    let ssl = parse_ssl_ctx(subcommand_args)?;
 
-    parse_avro_ctx(args).map(|avro_ctx| AppCtx {
+    parse_avro_ctx(subcommand_args).map(|avro_ctx| AppCtx {
         command,
         is_avro: is_json,
         payload,
@@ -108,9 +116,9 @@ fn parse_ssl_ctx(arg_matches: &ArgMatches) -> Result<SslCtx, CliError> {
         .map(|s| s.to_owned());
 
     Ok(SslCtx {
-        enabled: arg_matches.is_present("ssl"),
-        cert_validate: !arg_matches.is_present("ssl.disable.validate"),
-        host_validate: arg_matches.is_present("ssl.host.validate"),
+        enabled: arg_matches.is_present("ssl-enabled"),
+        cert_validate: !arg_matches.is_present("ssl-disable-validate"),
+        host_validate: arg_matches.is_present("ssl-host-validate"),
         key_location,
         key_password,
         cert_location,

@@ -71,10 +71,10 @@ fn build_kafka_config(kafka_ctx: &KafkaCtx) -> ClientConfig {
         if let Some(ref path) = kafka_ctx.ssl.ca_location {
             client_cfg.set("ssl.ca.location", &path);
         }
-        if let Some(ref path) = kafka_ctx.ssl.key_location {
+        if let Some(ref path) = kafka_ctx.ssl.keystore_location {
             client_cfg.set("ssl.keystore.location", &path);
         }
-        if let Some(ref pass) = kafka_ctx.ssl.key_password {
+        if let Some(ref pass) = kafka_ctx.ssl.keystore_password {
             client_cfg.set("ssl.keystore.password", &pass);
         }
     }
