@@ -1,13 +1,13 @@
 use crate::error::CliError::{Avro, Json, Kafka, Mapping, SchemaRegistry, IO};
+use crate::registry::RegistryError;
 
 use core::fmt;
 use core::fmt::Debug;
-use schema_registry_converter::error::SRCError;
 use serde::export::Formatter;
 use std::io;
 
 pub enum CliError {
-    SchemaRegistry(schema_registry_converter::error::SRCError),
+    SchemaRegistry(RegistryError),
     Avro(avro_rs::Error),
     IO(io::Error),
     Json(serde_json::Error),
@@ -34,8 +34,8 @@ impl fmt::Display for CliError {
     }
 }
 
-impl From<schema_registry_converter::error::SRCError> for CliError {
-    fn from(err: SRCError) -> Self {
+impl From<RegistryError> for CliError {
+    fn from(err: RegistryError) -> Self {
         SchemaRegistry(err)
     }
 }

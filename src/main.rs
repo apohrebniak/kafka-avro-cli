@@ -4,13 +4,14 @@ use crate::producer::Producer;
 use avro_rs::types::Value as AvroValue;
 use avro_rs::{AvroResult, Schema};
 use clap::{crate_version, App, AppSettings, Arg, ArgMatches};
-use schema_registry_converter::schema_registry_common::SubjectNameStrategy;
 use serde_json::Value as JsonValue;
+
+pub mod error;
+pub mod registry;
 
 mod avro;
 mod context;
 mod data;
-pub mod error;
 mod producer;
 
 fn main() -> Result<(), CliError> {
@@ -40,13 +41,13 @@ fn produce(ctx: &AppCtx) -> Result<(), CliError> {
 
         // use schema-registry?
         if ctx.avro_ctx.registry_url.is_none() {
-            let schema = avro::parse_schema(&ctx.avro_ctx)?;
+            let schema =
+                avro::parse_schema(ctx.avro_ctx.schema.as_ref().expect("schema expected"))?;
             let avros = jsons_to_avro(jsons, &schema)?;
             encode(avros, |avro: AvroValue| avro::encode(avro, &schema))?
         } else {
-            let strategy =
-                SubjectNameStrategy::TopicNameStrategy(ctx.kafka_ctx.topic.clone(), false);
-            let (schema_id, schema) = avro::get_registered_schema(&ctx.avro_ctx, &strategy)?;
+            let (schema_id, schema) =
+                avro::get_registered_schema(&ctx.avro_ctx, ctx.kafka_ctx.topic.as_str())?;
             let avros = jsons_to_avro(jsons, &schema)?;
             encode(avros, |avro: AvroValue| {
                 avro::encode_with_schema_id(avro, &schema, schema_id)
@@ -56,7 +57,7 @@ fn produce(ctx: &AppCtx) -> Result<(), CliError> {
         payload.into_iter().map(|s| s.into_bytes()).collect()
     };
 
-    Producer::produce(&ctx.kafka_ctx, encoded).map_err(|e| e.into())
+    Producer::produce(&ctx, encoded).map_err(|e| e.into())
 }
 
 fn encode<F>(avros: Vec<AvroValue>, mut map: F) -> Result<Vec<Vec<u8>>, CliError>
@@ -187,13 +188,13 @@ fn ssl_args() -> Vec<Arg<'static>> {
             .takes_value(true)
             .value_name("PATH")
             .required(false),
-        Arg::new("ssl-key-password")
-            .about("Client's private key passphrase (if key is encrypted)")
-            .long("ssl.key.password")
-            .takes_value(true)
-            .value_name("PASSWORD")
-            .multiple(false)
-            .required(false),
+        // Arg::new("ssl-key-password")
+        //     .about("Client's private key passphrase (if key is encrypted)")
+        //     .long("ssl.key.password")
+        //     .takes_value(true)
+        //     .value_name("PASSWORD")
+        //     .multiple(false)
+        //     .required(false),
         Arg::new("ssl-cert-location")
             .about("Path to client's public key (PEM) used for authentication")
             .long("ssl.cert.location")
@@ -206,17 +207,17 @@ fn ssl_args() -> Vec<Arg<'static>> {
             .takes_value(true)
             .value_name("PATH")
             .required(false),
-        Arg::new("ssl-keystore-location")
-            .about("Path to client's keystore (PKCS#12)")
-            .long("ssl.keystore.location")
-            .takes_value(true)
-            .value_name("PATH")
-            .required(false),
-        Arg::new("ssl-keystore-password")
-            .about("Client's keystore (PKCS#12) password")
-            .long("ssl.keystore.password")
-            .takes_value(true)
-            .value_name("PATH")
-            .required(false),
+        // Arg::new("ssl-keystore-location")
+        //     .about("Path to client's keystore (PKCS#12)")
+        //     .long("ssl.keystore.location")
+        //     .takes_value(true)
+        //     .value_name("PATH")
+        //     .required(false),
+        // Arg::new("ssl-keystore-password")
+        //     .about("Client's keystore (PKCS#12) password")
+        //     .long("ssl.keystore.password")
+        //     .takes_value(true)
+        //     .value_name("PATH")
+        //     .required(false),
     ]
 }

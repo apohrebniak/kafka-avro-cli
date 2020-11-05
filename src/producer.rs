@@ -1,4 +1,4 @@
-use crate::context::KafkaCtx;
+use crate::context::{AppCtx, KafkaCtx, SslCtx};
 use rdkafka::config::FromClientConfigAndContext;
 use rdkafka::error::KafkaError;
 use rdkafka::message::DeliveryResult;
@@ -12,9 +12,9 @@ const PRODUCER_MAX_RETRIES: &str = "0";
 pub struct Producer;
 
 impl Producer {
-    pub fn produce(kafka_ctx: &KafkaCtx, payloads: Vec<Vec<u8>>) -> Result<(), KafkaError> {
+    pub fn produce(ctx: &AppCtx, payloads: Vec<Vec<u8>>) -> Result<(), KafkaError> {
         //config
-        let client_cfg = build_kafka_config(kafka_ctx);
+        let client_cfg = build_kafka_config(&ctx.kafka_ctx, &ctx.ssl);
 
         //context
         let (ctx_sender, ctx_receiver) = channel::<Result<(), KafkaError>>();
@@ -25,7 +25,7 @@ impl Producer {
 
         for payload in &payloads {
             //actual send
-            prod.send(BaseRecord::<(), [u8]>::to(&kafka_ctx.topic).payload(payload.as_slice()))
+            prod.send(BaseRecord::<(), [u8]>::to(&ctx.kafka_ctx.topic).payload(payload.as_slice()))
                 .map_err(|(kafka_err, _)| kafka_err)?;
         }
 
@@ -36,46 +36,29 @@ impl Producer {
     }
 }
 
-fn build_kafka_config(kafka_ctx: &KafkaCtx) -> ClientConfig {
+fn build_kafka_config(kafka_ctx: &KafkaCtx, ssl: &SslCtx) -> ClientConfig {
     let mut client_cfg = ClientConfig::new();
     client_cfg.set("bootstrap.servers", &kafka_ctx.hosts);
     client_cfg.set("retries", PRODUCER_MAX_RETRIES);
 
-    if kafka_ctx.ssl.enabled {
+    if ssl.enabled {
         client_cfg.set("security.protocol", "ssl");
         client_cfg.set(
             "enable.ssl.certificate.verification",
-            if kafka_ctx.ssl.cert_validate {
-                "true"
-            } else {
-                "false"
-            },
+            if ssl.cert_validate { "true" } else { "false" },
         );
         client_cfg.set(
             "ssl.endpoint.identification.algorithm",
-            if kafka_ctx.ssl.host_validate {
-                "https"
-            } else {
-                "none"
-            },
+            if ssl.host_validate { "https" } else { "none" },
         );
-        if let Some(ref path) = kafka_ctx.ssl.key_location {
+        if let Some(ref path) = ssl.key_location {
             client_cfg.set("ssl.key.location", &path);
         }
-        if let Some(ref pass) = kafka_ctx.ssl.key_password {
-            client_cfg.set("ssl.key.password", &pass);
-        }
-        if let Some(ref path) = kafka_ctx.ssl.cert_location {
+        if let Some(ref path) = ssl.cert_location {
             client_cfg.set("ssl.certificate.location", &path);
         }
-        if let Some(ref path) = kafka_ctx.ssl.ca_location {
+        if let Some(ref path) = ssl.ca_location {
             client_cfg.set("ssl.ca.location", &path);
-        }
-        if let Some(ref path) = kafka_ctx.ssl.keystore_location {
-            client_cfg.set("ssl.keystore.location", &path);
-        }
-        if let Some(ref pass) = kafka_ctx.ssl.keystore_password {
-            client_cfg.set("ssl.keystore.password", &pass);
         }
     }
 

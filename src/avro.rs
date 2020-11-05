@@ -1,16 +1,10 @@
 use crate::context::AvroCtx;
 use crate::error::CliError;
+use crate::registry;
 use avro_rs::schema::UnionSchema;
 
 use avro_rs::types::Value as AvroValue;
 use avro_rs::{AvroResult, Schema};
-
-use schema_registry_converter::blocking::schema_registry::{get_schema_by_subject, SrSettings};
-use schema_registry_converter::error::SRCError;
-use schema_registry_converter::schema_registry_common;
-use schema_registry_converter::schema_registry_common::{
-    get_subject, RegisteredSchema, SchemaType, SubjectNameStrategy, SuppliedSchema,
-};
 
 use serde::export::Option::Some;
 
@@ -18,63 +12,36 @@ use serde_json::{Value as JsonValue, Value};
 use std::collections::HashMap;
 
 /// Parse Avro schema.
-pub fn parse_schema(ctx: &AvroCtx) -> Result<Schema, CliError> {
-    let raw_schema = match &ctx.schema {
-        Some(raw_schema) => raw_schema.clone(),
-        None => panic!("schema expected!"),
-    };
-
-    Schema::parse_str(&raw_schema).map_err(|e| e.into())
+pub fn parse_schema(raw_schema: &str) -> Result<Schema, CliError> {
+    Schema::parse_str(raw_schema).map_err(|e| e.into())
 }
 
 pub fn get_registered_schema(
+    //TODO: consider change
     ctx: &AvroCtx,
-    strategy: &SubjectNameStrategy,
+    topic: &str,
 ) -> Result<(u32, Schema), CliError> {
-    let registry_url = ctx
+    let _registry_url = ctx
         .registry_url
         .as_ref()
         .expect("registry url expected")
         .clone();
 
-    let registered_schema = match &ctx.schema {
-        Some(raw_schema) => register_schema(
-            registry_url,
-            get_subject(strategy).unwrap(),
-            raw_schema.as_str(),
-        )?,
-        None => fetch_schema(registry_url, strategy)?,
-    };
+    let subject = registry::get_subject(topic);
+    let registry_client = registry::RegistryClient::new();
 
-    Schema::parse_str(registered_schema.schema.as_str())
-        .map(|schema| (registered_schema.id, schema))
-        .map_err(|e| e.into())
-}
-
-fn fetch_schema(
-    registry_url: String,
-    strategy: &SubjectNameStrategy,
-) -> Result<RegisteredSchema, SRCError> {
-    get_schema_by_subject(&SrSettings::new(registry_url), strategy)
-}
-
-/// Register user defined Avro schema.
-/// Returns parsed schema and ID
-fn register_schema(
-    registry_url: String,
-    subject: String,
-    raw_schema: &str,
-) -> Result<RegisteredSchema, SRCError> {
-    schema_registry_converter::blocking::schema_registry::post_schema(
-        &SrSettings::new(registry_url),
-        subject,
-        SuppliedSchema {
-            name: None,
-            schema_type: SchemaType::Avro,
-            schema: raw_schema.to_string(),
-            references: vec![],
-        },
-    )
+    match &ctx.schema {
+        Some(raw_schema) => {
+            let schema = parse_schema(raw_schema)?;
+            registry_client
+                .register_schema(&subject, &schema)
+                .map(|id| (id, schema))
+                .map_err(|e| e.into())
+        }
+        None => registry_client
+            .get_schema_by_subject(&subject)
+            .map_err(|e| e.into()),
+    }
 }
 
 pub fn encode(value: AvroValue, schema: &Schema) -> AvroResult<Vec<u8>> {
@@ -86,8 +53,7 @@ pub fn encode_with_schema_id(
     schema: &Schema,
     schema_id: u32,
 ) -> AvroResult<Vec<u8>> {
-    avro_rs::to_avro_datum(schema, value)
-        .map(|bytes| schema_registry_common::get_payload(schema_id, bytes))
+    avro_rs::to_avro_datum(schema, value).map(|bytes| registry::append_schema_id(schema_id, bytes))
 }
 
 pub fn map_with_schema(json: &JsonValue, schema: &Schema) -> Result<AvroValue, CliError> {
