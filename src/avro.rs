@@ -31,11 +31,9 @@ pub fn get_registered_schema(
     let registry_client = registry::RegistryClient::new(&_registry_url);
 
     match &ctx.schema {
-        Some(raw_schema) => {
-            registry_client
-                .register_schema(&subject, &raw_schema)
-                .map_err(|e| e.into())
-        }
+        Some(raw_schema) => registry_client
+            .register_schema(&subject, &raw_schema)
+            .map_err(|e| e.into()),
         None => registry_client
             .get_schema_by_subject(&subject)
             .map_err(|e| e.into()),
