@@ -28,14 +28,12 @@ pub fn get_registered_schema(
         .clone();
 
     let subject = registry::get_subject(topic);
-    let registry_client = registry::RegistryClient::new();
+    let registry_client = registry::RegistryClient::new(&_registry_url);
 
     match &ctx.schema {
         Some(raw_schema) => {
-            let schema = parse_schema(raw_schema)?;
             registry_client
-                .register_schema(&subject, &schema)
-                .map(|id| (id, schema))
+                .register_schema(&subject, &raw_schema)
                 .map_err(|e| e.into())
         }
         None => registry_client
