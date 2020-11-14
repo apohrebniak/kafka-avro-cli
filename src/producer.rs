@@ -51,14 +51,20 @@ fn build_kafka_config(kafka_ctx: &KafkaCtx, ssl: &SslCtx) -> ClientConfig {
             "ssl.endpoint.identification.algorithm",
             if ssl.host_validate { "https" } else { "none" },
         );
-        if let Some(ref path) = ssl.key_location {
-            client_cfg.set("ssl.key.location", &path);
-        }
-        if let Some(ref path) = ssl.cert_location {
-            client_cfg.set("ssl.certificate.location", &path);
-        }
+        // if let Some(ref path) = ssl.key_location {
+        //     client_cfg.set("ssl.key.location", &path);
+        // }
+        // if let Some(ref path) = ssl.cert_location {
+        //     client_cfg.set("ssl.certificate.location", &path);
+        // }
         if let Some(ref path) = ssl.ca_location {
             client_cfg.set("ssl.ca.location", &path);
+        }
+        if let Some(ref path) = ssl.keystore_location {
+            client_cfg.set("ssl.keystore.location", &path);
+        }
+        if let Some(ref pass) = ssl.keystore_password {
+            client_cfg.set("ssl.keystore.password", &pass);
         }
     }
 

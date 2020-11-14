@@ -1,4 +1,4 @@
-use crate::context::AvroCtx;
+use crate::context::{AppCtx, AvroCtx};
 use crate::error::CliError;
 use crate::registry;
 use avro_rs::schema::UnionSchema;
@@ -16,28 +16,18 @@ pub fn parse_schema(raw_schema: &str) -> Result<Schema, CliError> {
     Schema::parse_str(raw_schema).map_err(|e| e.into())
 }
 
-pub fn get_registered_schema(
-    //TODO: consider change
-    ctx: &AvroCtx,
-    topic: &str,
-) -> Result<(u32, Schema), CliError> {
-    let _registry_url = ctx
-        .registry_url
-        .as_ref()
-        .expect("registry url expected")
-        .clone();
+pub fn get_registered_schema(ctx: &AppCtx) -> Result<(u32, Schema), CliError> {
+    let subject = registry::get_subject(ctx.kafka_ctx.topic.as_str());
+    let registry_client = registry::RegistryClient::new(ctx)?;
 
-    let subject = registry::get_subject(topic);
-    let registry_client = registry::RegistryClient::new(&_registry_url);
-
-    match &ctx.schema {
+    let (id, raw_schema) = match &ctx.avro_ctx.schema {
         Some(raw_schema) => registry_client
             .register_schema(&subject, &raw_schema)
-            .map_err(|e| e.into()),
-        None => registry_client
-            .get_schema_by_subject(&subject)
-            .map_err(|e| e.into()),
-    }
+            .map(|id| (id, raw_schema.to_string())),
+        None => registry_client.get_schema_by_subject(&subject),
+    }?;
+
+    parse_schema(&raw_schema).map(|s| (id, s))
 }
 
 pub fn encode(value: AvroValue, schema: &Schema) -> AvroResult<Vec<u8>> {

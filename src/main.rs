@@ -46,8 +46,7 @@ fn produce(ctx: &AppCtx) -> Result<(), CliError> {
             let avros = jsons_to_avro(jsons, &schema)?;
             encode(avros, |avro: AvroValue| avro::encode(avro, &schema))?
         } else {
-            let (schema_id, schema) =
-                avro::get_registered_schema(&ctx.avro_ctx, ctx.kafka_ctx.topic.as_str())?;
+            let (schema_id, schema) = avro::get_registered_schema(&ctx)?;
             let avros = jsons_to_avro(jsons, &schema)?;
             encode(avros, |avro: AvroValue| {
                 avro::encode_with_schema_id(avro, &schema, schema_id)
@@ -182,12 +181,12 @@ fn ssl_args() -> Vec<Arg<'static>> {
             .long("ssl.host.validate")
             .takes_value(false)
             .required(false),
-        Arg::new("ssl-key-location")
-            .about("Path to client's private key (PEM)")
-            .long("ssl.key.location")
-            .takes_value(true)
-            .value_name("PATH")
-            .required(false),
+        // Arg::new("ssl-key-location")
+        //     .about("Path to client's private key (PEM)")
+        //     .long("ssl.key.location")
+        //     .takes_value(true)
+        //     .value_name("PATH")
+        //     .required(false),
         // Arg::new("ssl-key-password")
         //     .about("Client's private key passphrase (if key is encrypted)")
         //     .long("ssl.key.password")
@@ -195,29 +194,31 @@ fn ssl_args() -> Vec<Arg<'static>> {
         //     .value_name("PASSWORD")
         //     .multiple(false)
         //     .required(false),
-        Arg::new("ssl-cert-location")
-            .about("Path to client's public key (PEM) used for authentication")
-            .long("ssl.cert.location")
-            .takes_value(true)
-            .value_name("PATH")
-            .required(false),
+        // Arg::new("ssl-cert-location")
+        //     .about("Path to client's public key (PEM) used for authentication")
+        //     .long("ssl.cert.location")
+        //     .takes_value(true)
+        //     .value_name("PATH")
+        //     .required(false),
         Arg::new("ssl-ca-location")
-            .about("File or directory path to CA certificate(s) for verifying the broker's key")
+            .about(
+                "File or directory path to CA certificate(s) for verifying the broker's key. (PEM)",
+            )
             .long("ssl.ca.location")
             .takes_value(true)
             .value_name("PATH")
             .required(false),
-        // Arg::new("ssl-keystore-location")
-        //     .about("Path to client's keystore (PKCS#12)")
-        //     .long("ssl.keystore.location")
-        //     .takes_value(true)
-        //     .value_name("PATH")
-        //     .required(false),
-        // Arg::new("ssl-keystore-password")
-        //     .about("Client's keystore (PKCS#12) password")
-        //     .long("ssl.keystore.password")
-        //     .takes_value(true)
-        //     .value_name("PATH")
-        //     .required(false),
+        Arg::new("ssl-keystore-location")
+            .about("Path to client's keystore (PKCS#12)")
+            .long("ssl.keystore.location")
+            .takes_value(true)
+            .value_name("PATH")
+            .required(false),
+        Arg::new("ssl-keystore-password")
+            .about("Client's keystore (PKCS#12) password")
+            .long("ssl.keystore.password")
+            .takes_value(true)
+            .value_name("PATH")
+            .required(false),
     ]
 }

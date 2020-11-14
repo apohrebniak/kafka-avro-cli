@@ -6,12 +6,12 @@ pub struct SslCtx {
     pub enabled: bool,
     pub cert_validate: bool,
     pub host_validate: bool,
-    pub key_location: Option<String>,
+    // pub key_location: Option<String>,
     // pub key_password: Option<String>,
-    pub cert_location: Option<String>,
+    // pub cert_location: Option<String>,
     pub ca_location: Option<String>,
-    // pub keystore_location: Option<String>,
-    // pub keystore_password: Option<String>,
+    pub keystore_location: Option<String>,
+    pub keystore_password: Option<String>,
 }
 
 pub struct KafkaCtx {
@@ -97,34 +97,34 @@ fn parse_avro_ctx(arg_matches: &ArgMatches) -> Result<AvroCtx, CliError> {
 }
 
 fn parse_ssl_ctx(arg_matches: &ArgMatches) -> Result<SslCtx, CliError> {
-    let key_location = arg_matches
-        .value_of("ssl-key-location")
-        .map(|s| s.to_owned());
+    // let key_location = arg_matches
+    //     .value_of("ssl-key-location")
+    //     .map(|s| s.to_owned());
     // let key_password = arg_matches
     //     .value_of("ssl-key-password")
     //     .map(|s| s.to_owned());
-    let cert_location = arg_matches
-        .value_of("ssl-cert-location")
-        .map(|s| s.to_owned());
+    // let cert_location = arg_matches
+    //     .value_of("ssl-cert-location")
+    //     .map(|s| s.to_owned());
     let ca_location = arg_matches
         .value_of("ssl-ca-location")
         .map(|s| s.to_owned());
-    // let keystore_location = arg_matches
-    //     .value_of("ssl-keystore-location")
-    //     .map(|s| s.to_owned());
-    // let keystore_password = arg_matches
-    //     .value_of("ssl-keystore-password")
-    //     .map(|s| s.to_owned());
+    let keystore_location = arg_matches
+        .value_of("ssl-keystore-location")
+        .map(|s| s.to_owned());
+    let keystore_password = arg_matches
+        .value_of("ssl-keystore-password")
+        .map(|s| s.to_owned());
 
     Ok(SslCtx {
         enabled: arg_matches.is_present("ssl-enabled"),
         cert_validate: !arg_matches.is_present("ssl-disable-validate"),
         host_validate: arg_matches.is_present("ssl-host-validate"),
-        key_location,
+        // key_location,
         // key_password,
-        cert_location,
+        // cert_location,
         ca_location,
-        // keystore_location,
-        // keystore_password,
+        keystore_location,
+        keystore_password,
     })
 }
