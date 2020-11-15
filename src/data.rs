@@ -1,5 +1,5 @@
 use serde_json::Value as JsonValue;
-use std::io::{BufRead, Read};
+use std::io::BufRead;
 use std::{fs, io};
 
 pub fn read_payload(path: &str) -> io::Result<Vec<String>> {

@@ -181,25 +181,6 @@ fn ssl_args() -> Vec<Arg<'static>> {
             .long("ssl.host.validate")
             .takes_value(false)
             .required(false),
-        // Arg::new("ssl-key-location")
-        //     .about("Path to client's private key (PEM)")
-        //     .long("ssl.key.location")
-        //     .takes_value(true)
-        //     .value_name("PATH")
-        //     .required(false),
-        // Arg::new("ssl-key-password")
-        //     .about("Client's private key passphrase (if key is encrypted)")
-        //     .long("ssl.key.password")
-        //     .takes_value(true)
-        //     .value_name("PASSWORD")
-        //     .multiple(false)
-        //     .required(false),
-        // Arg::new("ssl-cert-location")
-        //     .about("Path to client's public key (PEM) used for authentication")
-        //     .long("ssl.cert.location")
-        //     .takes_value(true)
-        //     .value_name("PATH")
-        //     .required(false),
         Arg::new("ssl-ca-location")
             .about(
                 "File or directory path to CA certificate(s) for verifying the broker's key. (PEM)",

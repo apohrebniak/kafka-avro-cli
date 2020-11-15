@@ -1,4 +1,4 @@
-use crate::context::{AppCtx, AvroCtx};
+use crate::context::AppCtx;
 use crate::error::CliError;
 use crate::registry;
 use avro_rs::schema::UnionSchema;

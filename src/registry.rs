@@ -1,13 +1,12 @@
 use crate::context::{AppCtx, SslCtx};
-use avro_rs::Schema;
-use core::fmt;
-use native_tls::{Certificate, Identity, TlsConnector, TlsConnectorBuilder};
+
+use native_tls::{Certificate, Identity, TlsConnector};
 use serde::de::DeserializeOwned;
-use serde::export::Formatter;
+
 use serde::Deserialize;
+use serde_json::json;
 use serde_json::Value as JsonValue;
-use serde_json::{json, Value};
-use std::io::Read;
+
 use std::sync::Arc;
 use std::{fs, io};
 use ureq::Request;
@@ -17,17 +16,20 @@ const ACCEPT_HEADER_VALUE: &str =
 
 #[derive(thiserror::Error, Debug)]
 pub enum RegistryError {
-    All,
     #[error(transparent)]
     Io(#[from] io::Error),
     #[error(transparent)]
     Tls(#[from] native_tls::Error),
-}
-
-impl fmt::Display for RegistryError {
-    fn fmt(&self, _f: &mut Formatter<'_>) -> fmt::Result {
-        unimplemented!() //TODO
-    }
+    #[error("Schema conflict")]
+    Conflict,
+    #[error("Schema or subject invalid")]
+    Invalid,
+    #[error("Schema not found")]
+    NotFound,
+    #[error("Schema registry: `{0}`")]
+    Internal(String),
+    #[error("Schema registry internal")]
+    RegistryInternal,
 }
 
 type RegistryResult<T> = Result<T, RegistryError>;
@@ -58,23 +60,21 @@ impl RegistryClient {
     }
 
     pub fn get_schema_by_subject(&self, subject: &str) -> RegistryResult<(u32, String)> {
-        let resp: GetResp = self.do_request(
+        self.do_request::<GetResp>(
             ureq::get,
             &format!("{}/subjects/{}/versions/latest", self.url, subject),
             None,
-        );
-
-        Ok((resp.id, resp.schema))
+        )
+        .map(|resp| (resp.id, resp.schema))
     }
 
     pub fn register_schema(&self, subject: &str, raw_schema: &str) -> RegistryResult<u32> {
-        let resp: PostResp = self.do_request(
+        self.do_request::<PostResp>(
             ureq::post,
             &format!("{}/subjects/{}/versions", self.url, subject),
             Some(json!({ "schema": raw_schema })),
-        );
-
-        Ok(resp.id)
+        )
+        .map(|resp| resp.id)
     }
 
     fn do_request<T: DeserializeOwned>(
@@ -82,7 +82,7 @@ impl RegistryClient {
         func: fn(&str) -> Request,
         url: &str,
         json: Option<JsonValue>,
-    ) -> T {
+    ) -> RegistryResult<T> {
         let mut req = func(url).set("Accept", ACCEPT_HEADER_VALUE).build();
 
         if let Some(connector) = self.tls_connector.as_ref() {
@@ -95,12 +95,26 @@ impl RegistryClient {
         };
 
         if let Some(err) = resp.synthetic_error() {
-            panic!();
+            return Err(RegistryError::Internal(err.body_text()));
         };
 
-        let status = resp.status(); //TODO check it
+        match resp.status() {
+            404 => {
+                return Err(RegistryError::NotFound);
+            }
+            422 => {
+                return Err(RegistryError::Invalid);
+            }
+            409 => {
+                return Err(RegistryError::Conflict);
+            }
+            500 => {
+                return Err(RegistryError::RegistryInternal);
+            }
+            _ => {}
+        }
 
-        resp.into_json_deserialize::<T>().unwrap() //TODO
+        resp.into_json_deserialize::<T>().map_err(|e| e.into())
     }
 
     fn get_tls_connector(ssl: &SslCtx) -> RegistryResult<Option<TlsConnector>> {
