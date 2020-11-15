@@ -160,7 +160,6 @@ fn match_args() -> ArgMatches {
                         .value_name("http[s]://host:port"),
                 ),
         )
-        .subcommand(App::new("consume").about("Consumes Kafka messages. UNIMPLEMENTED"))
         .get_matches()
 }
 
