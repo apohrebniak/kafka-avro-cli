@@ -60,13 +60,13 @@ kafka-avro-cli produce -h localhost:9092 -t my-topic -T -p "Hello Kafka!"
 ```
 Produce json message with avro schema:
 ```
-kafka-avro-cli produce -h localhost:9092 -t my-topic -p `{"msg": "Hello Kafka!"}` -s `{"name":"msg", "type": "record", "fields": ["name": "msg", "type": "string"]}`
+kafka-avro-cli produce -h localhost:9092 -t my-topic -p '{"msg": "Hello Kafka!"}' -s '{"name":"msg", "type": "record", "fields": [{"name": "msg", "type": "string"}]}'
 ```
 Produce json message with avro schema and register the schema in schema-registry:
 ```
-kafka-avro-cli produce -h localhost:9092 -t my-topic --registry-url http://localhost:8081 -p `{"msg": "Hello Kafka!"}` -s `{"name":"msg", "type": "record", "fields": ["name": "msg", "type": "string"]}`
+kafka-avro-cli produce -h localhost:9092 -t my-topic --registry-url http://localhost:8081 -p '{"msg": "Hello Kafka!"}' -s '{"name":"msg", "type": "record", "fields": [{"name": "msg", "type": "string"}]}'
 ```
 Produce json message using already registered schema
 ```
-kafka-avro-cli produce -h localhost:9092 -t my-topic --registry-url http://localhost:8081 -p `{"msg": "Hello Kafka!"}`
+kafka-avro-cli produce -h localhost:9092 -t my-topic --registry-url http://localhost:8081 -p '{"msg": "Hello Kafka!"}'
 ```
