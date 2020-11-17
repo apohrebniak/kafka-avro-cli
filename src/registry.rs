@@ -158,7 +158,7 @@ pub fn get_subject(topic: &str) -> String {
 }
 
 pub fn append_schema_id(id: u32, encoded_bytes: Vec<u8>) -> Vec<u8> {
-    let mut result: Vec<u8> = Vec::new();
+    let mut result: Vec<u8> = vec![0u8];
     let id_bytes: [u8; 4] = u32::to_be_bytes(id);
     result.extend_from_slice(&id_bytes);
     result.extend_from_slice(encoded_bytes.as_slice());
