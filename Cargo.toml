@@ -13,11 +13,11 @@ lto = true
 panic = "abort"
 
 [dependencies]
-rdkafka = {version="0.24.0", default-features=false, features = ["ssl"]}
+rdkafka = {version = "0.24.0", default-features = false, features = ["ssl"]}
 clap = {version = "3.0.0-beta.2"}
-avro-rs = {version = "0.11.0", default-features = false}
+avro-rs = {default-features = false, git = "https://github.com/apohrebniak/avro-rs", branch = "attempt-fix", rev = "9080578f65ec403c86d453417641632312c2b66c"}
 serde = "1.0"
 serde_json = "1.0.59"
-ureq = {version="1.5.1", default-features=false, features = ["json", "native-tls"]}
+ureq = {version = "1.5.1", default-features = false, features = ["json", "native-tls"]}
 native-tls = "0.2.6"
 thiserror = "1.0.22"

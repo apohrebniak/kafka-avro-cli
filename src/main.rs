@@ -73,7 +73,7 @@ where
 fn jsons_to_avro(jsons: Vec<JsonValue>, schema: &Schema) -> Result<Vec<AvroValue>, CliError> {
     jsons
         .iter()
-        .map(|json| avro::map_with_schema(json, schema))
+        .map(|json| avro::map_with_schema(json, &schema.root()))
         .collect::<Result<Vec<AvroValue>, CliError>>()
 }
 
